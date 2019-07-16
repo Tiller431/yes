@@ -1,0 +1,71 @@
+version: "3.5"
+services:
+  pisstaube:
+    image: pisstaube
+    build: ./
+    volumes:
+      - ./data/pisstaube_data/:/pisstaube/data
+    links:
+      - datadog
+      - db
+      - elasticsearch
+    depends_on:
+      - datadog
+      - db
+      - elasticsearch
+    environment:
+      - MARIADB_HOST=db
+      - MARIADB_PORT=3306
+      - DD_AGENT_HOST=datadog
+      - MARIADB_USERNAME=root
+      - MARIADB_PASSWORD=supersecretpasswordthatnobodywilleverknowsincenobodycanconencttothisdatabasepog
+      - ELASTIC_HOSTNAME=elasticsearch
+      - ELASTIC_PORT=9200
+    env_file:
+      - docker.env
+    restart: on-failure
+    ports:
+      - 62011:80
+
+  elasticsearch:
+    image: bitnami/elasticsearch
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - http.host=0.0.0.0
+      - transport.host=127.0.0.1
+      - bootstrap.memory_lock=true
+      - ELASTICSEARCH_HEAP_SIZE=2G
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    #volumes:
+    #  - ./data/elasticsearch_data/:/bitnami/elasticsearch/data
+    expose:
+      - 9200
+    #ports:
+    #  - 9200:9200
+
+  db:
+    container_name: db
+    image: mysql:5.7.23
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./data/mysql_data/:/var/lib/mysql
+    restart: on-failure
+    environment:
+      - MYSQL_ROOT_PASSWORD=supersecretpasswordthatnobodywilleverknowsincenobodycanconencttothisdatabasepog
+      - MYSQL_ROOT_HOST=%
+    expose:
+      - 3306
+
+  datadog:
+    container_name: datadog
+    image: datadog/docker-dd-agent:latest
+    env_file:
+      - docker.env
+    restart: on-failure
+    expose:
+      - 8125
+      - 8126
